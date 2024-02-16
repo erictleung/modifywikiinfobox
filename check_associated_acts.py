@@ -16,10 +16,26 @@ from bs4 import BeautifulSoup as bs
 def get_info_box(url):
     """
     Pull Infobox information
-    """
-    response = requests.get(search, timeout=10)
-    wikicode = mwparserfromhell.parse(response.content)
 
+    :param str url: whole URL for Wikipedia page to get infobox from
+    :return: string of just infobox
+
+    Examples
+    ========
+    >>> BASE= "https://en.wikipedia.org/w/index.php/?title="
+    >>> page = "The_Beatles"
+    >>> SUFFIX = "&action=raw&ctype=text"
+    >>> get_infobox(BASE + page + SUFFIX)
+    """
+    r = requests.get(url, timeout=10)
+    wc = mwparserfromhell.parse(r.content)
+
+    for t in wc.filter_templates():
+        if t.name.matches("Infobox musical artist"):
+            return t
+
+    print("No infobox found")
+    return ""
 
 
 # pylint: disable=line-too-long
