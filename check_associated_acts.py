@@ -4,6 +4,14 @@
 Help audit, remove, and update musician infoboxes.
 
 https://en.wikipedia.org/wiki/Category:Pages_using_infobox_musical_artist_with_associated_acts
+
+Article cases:
+- Musician with associated acts as
+  - Other musicians (remove)
+  - Bands (can be updated to current_member_of or past_member_of)
+- Bands with associated acts as
+  - Musicians (can be updated to current_members or past_member_of, check if those exist)
+  - Bands (can be updated to spinoff_of or spinoffs)
 """
 
 import re
