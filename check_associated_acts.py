@@ -3,6 +3,8 @@
 """
 Help audit, remove, and update musician infoboxes.
 
+Usage: python3 check_associated_acts.py
+
 https://en.wikipedia.org/wiki/Category:Pages_using_infobox_musical_artist_with_associated_acts
 
 Article cases:
@@ -10,12 +12,14 @@ Article cases:
   - Other musicians (remove)
   - Bands (can be updated to current_member_of or past_member_of)
 - Bands with associated acts as
-  - Musicians (can be updated to current_members or past_member_of, check if those exist)
+  - Musicians (can be updated to current_members or past_member_of, check if
+    those exist)
   - Bands (can be updated to spinoff_of or spinoffs)
 """
 
 import re
 import requests
+# import webbrowser
 
 import mwparserfromhell
 from bs4 import BeautifulSoup as bs
@@ -46,6 +50,49 @@ def get_info_box(url):
     return ""
 
 
+def construct_wiki_url(page_title):
+    """
+    Create Wikipedia URL using page title
+
+    This is to help create a valid URL to open a Wikipedia page using the web
+    browser. It takes the title's page.
+    """
+    # Setup to extract the raw Wikitext
+    wiki_base = "https://en.wikipedia.org/w/index.php?title="
+    wiki_end = "&action=raw&ctype=text"
+
+    # Just use one page for example
+    return f"{wiki_base}{str(page_title)}{wiki_end}"
+
+
+def get_wiki_markup(page):
+    """
+    Get Wiki markup
+
+    Given a Wikipedia URL, request Wiki page and return its Wiki markup code.
+    """
+    page_response = requests.get(page, timeout=10)
+    return mwparserfromhell.parse(page_response.content)
+
+
+def get_param_wikilinks(template_obj, param):
+    """
+    Return Wikilinks from template parameter
+    """
+    print(f"Getting the {param}= values:")
+    try:
+        wiki_links = (
+            template_obj
+            .get(f"{param}")
+            .value
+            .filter_wikilinks()
+        )
+    except ValueError:
+        wiki_links = "None"
+
+    return wiki_links
+
+
 # pylint: disable=line-too-long
 response = requests.get(
         url="https://en.wikipedia.org/wiki/Category:Pages_using_infobox_musical_artist_with_associated_acts",  # noqa: E501
@@ -67,16 +114,12 @@ for link in all_pages:
 
 print(f"Parsed {len(music_pages)} pages.")
 
-# Setup to extract the raw Wikitext
-WIKI_BASE = "https://en.wikipedia.org/w/index.php?title="
-WIKI_END = "&action=raw&ctype=text"
-
 # Just use one page for example
-search = WIKI_BASE + music_pages[0] + WIKI_END
+search = construct_wiki_url(music_pages[0])
 print(f"Searching for {search}")
 
-response = requests.get(search, timeout=10)
-wikicode = mwparserfromhell.parse(response.content)
+# Request and pull Wiki markup code
+wikicode = get_wiki_markup(search)
 
 # Pseudocode:
 # Loop through initial pages
@@ -90,8 +133,9 @@ wikicode = mwparserfromhell.parse(response.content)
 # - spinoff_of=
 # - spinoffs=
 # Pause to make manual changes
-print("Printing top node.")
-print(wikicode.get_sections(include_lead=True))
+
+# print("Printing top node.")
+# print(wikicode.get_sections(include_lead=True))
 
 for template in wikicode.filter_templates():
     if template.name.matches("Infobox musical artist"):
@@ -101,3 +145,19 @@ for template in wikicode.filter_templates():
         for link in ac:
             title = link.title
             print(title)
+            search = construct_wiki_url(title)
+            # webbrowser.open()
+
+            # Get information about what kind of article it is, e.g., band or
+            # individual
+            inner_wikicode = get_wiki_markup(search)
+
+            for template in inner_wikicode.filter_templates():
+                if template.name.matches("Infobox musical artist"):
+
+                    print(get_param_wikilinks(template, "current_member_of"))
+                    print(get_param_wikilinks(template, "past_member_of"))
+                    print(get_param_wikilinks(template, "spinoff_of"))
+                    print(get_param_wikilinks(template, "spinoffs"))
+
+            input("Enter any key to continue...")
