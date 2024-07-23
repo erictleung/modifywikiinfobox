@@ -17,12 +17,13 @@ Article cases:
   - Bands (can be updated to spinoff_of or spinoffs)
 """
 
+import random
 import re
-import requests
-# import webbrowser
+import webbrowser
 
-import mwparserfromhell
 from bs4 import BeautifulSoup as bs
+import mwparserfromhell
+import requests
 
 
 def get_info_box(url):
@@ -50,7 +51,7 @@ def get_info_box(url):
     return ""
 
 
-def construct_wiki_url(page_title):
+def construct_wiki_url(page_title, source=True):
     """
     Create Wikipedia URL using page title
 
@@ -59,10 +60,13 @@ def construct_wiki_url(page_title):
     """
     # Setup to extract the raw Wikitext
     wiki_base = "https://en.wikipedia.org/w/index.php?title="
-    wiki_end = "&action=raw&ctype=text"
+    wiki_src_end = "&action=raw&ctype=text"
+    wiki_edit_end = "&veaction=editsource"
 
-    # Just use one page for example
-    return f"{wiki_base}{str(page_title)}{wiki_end}"
+    if source:
+        return f"{wiki_base}{str(page_title)}{wiki_src_end}"
+
+    return f"{wiki_base}{str(page_title)}{wiki_edit_end}"
 
 
 def get_wiki_markup(page):
@@ -114,8 +118,8 @@ for link in all_pages:
 
 print(f"Parsed {len(music_pages)} pages.")
 
-# Just use one page for example
-search = construct_wiki_url(music_pages[0])
+# Just use one page for example at random
+search = construct_wiki_url(random.choice(music_pages))
 print(f"Searching for {search}")
 
 # Request and pull Wiki markup code
@@ -138,20 +142,25 @@ wikicode = get_wiki_markup(search)
 # print(wikicode.get_sections(include_lead=True))
 
 for template in wikicode.filter_templates():
+
+    # Just focus on the musical artitist infobox
     if template.name.matches("Infobox musical artist"):
-        print("Getting the associated_acts= values:")
-        print(template.get("associated_acts").value.filter_wikilinks())
-        ac = template.get("associated_acts").value.filter_wikilinks()
+        ac = get_param_wikilinks(template, "associated_acts")
+        print(ac)
+
+        # Loop through links in associated_acts for page
         for link in ac:
+
             title = link.title
             print(title)
             search = construct_wiki_url(title)
-            # webbrowser.open()
+            webbrowser.open(search)
 
             # Get information about what kind of article it is, e.g., band or
             # individual
             inner_wikicode = get_wiki_markup(search)
 
+            # Loop through values of each page
             for template in inner_wikicode.filter_templates():
                 if template.name.matches("Infobox musical artist"):
 
