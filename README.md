@@ -4,13 +4,14 @@ Python tools to help semi-automate updating Wikipedia infoboxes
 
 ## Setup
 
-```
-pip install -r requirements
+```bash
+python -m venv venv
+pip install -r requirements.txt
 ```
 
 ## Usage
 
-```
+```bash
 python check_associated_acts.py
 ```
 
